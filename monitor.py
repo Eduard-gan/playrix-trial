@@ -522,8 +522,9 @@ if __name__ == "__main__":
     )
 
     args = parse_args()
-    assert args.start_date <= args.end_date, f"Указанная дата начала анализа {args.start_date} больше, " \
-        f"чем дата его завершения {args.end_date}."
+    if args.start_date and args.end_date:
+        assert args.start_date <= args.end_date, f"Указанная дата начала анализа {args.start_date} больше, " \
+            f"чем дата его завершения {args.end_date}."
 
     repository = GithubRepository(url=args.url, branch=args.branch)
 
