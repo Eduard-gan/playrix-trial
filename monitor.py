@@ -33,15 +33,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "-s",
         "--start_date",
-        help="Дата начала анализа. Если пустая, то неограничено. Пример: 15.01.2020",
-        type=lambda x: datetime.strptime(x, '%d.%m.%Y').date(),
+        help="Дата начала анализа. Если пустая, то неограничено. Пример: 2016-01-15",
+        type=lambda x: datetime.strptime(x, '%Y-%m-%d').date(),
         default=datetime.fromtimestamp(0).date(),
     )
     parser.add_argument(
         "-e",
         "--end_date",
-        help="Дата начала анализа. Если пустая, то неограничено. Пример: 15.01.2021",
-        type=lambda x: datetime.strptime(x, '%d.%m.%Y').date(),
+        help="Дата начала анализа. Если пустая, то неограничено. Пример: 2016-03-01",
+        type=lambda x: datetime.strptime(x, '%Y-%m-%d').date(),
         default=datetime.now().date(),
     )
     parser.add_argument(
@@ -337,8 +337,6 @@ class GithubRepository:
 
             items += data["items"]
 
-            print(data['total_count'])
-
             pages = int((decimal.Decimal(data['total_count']) / per_page).quantize(1, decimal.ROUND_UP))
             page += 1
 
@@ -513,7 +511,7 @@ if __name__ == "__main__":
     logging.basicConfig(
         format='%(asctime)s[%(levelname)s]: %(message)s',
         handlers=[logging.StreamHandler(sys.stdout)],
-        level=logging.DEBUG
+        level=logging.INFO
     )
 
     args = parse_args()
@@ -522,8 +520,8 @@ if __name__ == "__main__":
 
     repository = GithubRepository(url=args.url, branch=args.branch)
 
-    logging.debug(f"Начато получение информации о репозитории {repository}")
+    logging.info(f"Начато получение информации о репозитории {repository}")
     repository.pull_data(start_date=args.start_date, end_date=args.end_date)
-    logging.debug(f"Завершено получение информации о репозитории {repository}")
+    logging.info(f"Завершено получение информации о репозитории {repository}")
 
     print(repository.get_report(start_date=args.start_date, end_date=args.end_date))
