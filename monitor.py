@@ -158,12 +158,12 @@ class Contributor(GithubObject):
     login: str
     contributions: int = 0
 
-    def __init__(self, login: str, contributions: int = 0, **kwargs):
+    def __init__(self, login: str, contributions: int = 0, **kwargs) -> None:
         super().__init__(**kwargs)
         self.login = login
         self.contributions = contributions
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}(login={self.login}, contributions={self.contributions})"
 
 
@@ -179,7 +179,7 @@ class Commit(GithubObject):
 
     api_path = "commits"
 
-    def __init__(self, contributor: Optional[Contributor] = None, **kwargs):
+    def __init__(self, contributor: Optional[Contributor] = None, **kwargs) -> None:
         super().__init__(**kwargs)
         self.contributor = contributor
 
@@ -203,7 +203,7 @@ class Issue(GithubObject):
 
     api_path: str = "issues"
 
-    def __init__(self, state: str, closed_at: Optional[datetime] = None, **kwargs):
+    def __init__(self, state: str, closed_at: Optional[datetime] = None, **kwargs) -> None:
         super().__init__(**kwargs)
         self.state = state
         self.closed_at = closed_at
@@ -251,7 +251,7 @@ class PullRequest(Issue):
 
     base: str
 
-    def __init__(self, base: str, **kwargs):
+    def __init__(self, base: str, **kwargs) -> None:
         super().__init__(**kwargs)
         self.base = base
 
@@ -291,7 +291,7 @@ class GithubRepository:
     pull_requests: Optional[List[PullRequest]] = None
     issues: Optional[List[Issue]] = None
 
-    def __init__(self, url: str, branch: str):
+    def __init__(self, url: str, branch: str) -> None:
         self.branch = branch
 
         url_components = urlparse(url)
@@ -303,7 +303,7 @@ class GithubRepository:
         assert url_components.path, f"В указанном URL({url}) не найден путь к репозиторию."
         self.owner, self.repo = url_components.path.split("/")[1:]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.scheme}://{self.netloc}/{self.owner}/{self.repo}"
 
     @staticmethod
