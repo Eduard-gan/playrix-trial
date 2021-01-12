@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+from __future__ import annotations
+
 import argparse
 import decimal
 import logging
@@ -140,7 +142,7 @@ class GithubObject:
         return True if self.node_id == other.node_id else False
 
     @classmethod
-    def from_dict(cls, data: Dict, **kwargs: Any) -> "GithubObject":
+    def from_dict(cls, data: Dict, **kwargs: Any) -> GithubObject:
         """
         Возвращает Инстанс соответствующего дочернего класса.
 
@@ -182,7 +184,7 @@ class Commit(GithubObject):
         self.contributor = contributor
 
     @classmethod
-    def from_dict(cls, data: Dict, **kwargs: Any) -> "Commit":
+    def from_dict(cls, data: Dict, **kwargs: Any) -> Commit:
         return cls(
             node_id=data['node_id'],
             created_at=datetime.strptime(data['commit']['author']['date'], GITHUB_TIMESTAMP_FORMAT),
@@ -218,7 +220,7 @@ class Issue(GithubObject):
         )
 
     @classmethod
-    def from_dict(cls, data: Dict, **kwargs: Any) -> "Issue":
+    def from_dict(cls, data: Dict, **kwargs: Any) -> Issue:
         return cls(**cls.get_data(data))
 
     @property
@@ -254,7 +256,7 @@ class PullRequest(Issue):
         self.base = base
 
     @classmethod
-    def from_dict(cls, data: Dict, **kwargs: Any) -> "PullRequest":
+    def from_dict(cls, data: Dict, **kwargs: Any) -> PullRequest:
         return cls(**cls.get_data(data=data), base=kwargs["base"])
 
     @property
