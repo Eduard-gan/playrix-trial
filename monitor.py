@@ -35,14 +35,12 @@ def parse_args() -> argparse.Namespace:
         "--start_date",
         help="Дата начала анализа. Если пустая, то неограничено. Пример: 2016-01-15",
         type=lambda x: datetime.strptime(x, '%Y-%m-%d').date(),
-        default=datetime.fromtimestamp(0).date(),
     )
     parser.add_argument(
         "-e",
         "--end_date",
         help="Дата начала анализа. Если пустая, то неограничено. Пример: 2016-03-01",
         type=lambda x: datetime.strptime(x, '%Y-%m-%d').date(),
-        default=datetime.now().date(),
     )
     parser.add_argument(
         "-b",
@@ -142,7 +140,7 @@ class GithubObject:
         return True if self.node_id == other.node_id else False
 
     @classmethod
-    def from_dict(cls, data: Dict, **kwargs) -> "GithubObject":
+    def from_dict(cls, data: Dict, **kwargs: Any) -> "GithubObject":
         """
         Возвращает Инстанс соответствующего дочернего класса.
 
@@ -158,7 +156,7 @@ class Contributor(GithubObject):
     login: str
     contributions: int = 0
 
-    def __init__(self, login: str, contributions: int = 0, **kwargs) -> None:
+    def __init__(self, login: str, contributions: int = 0, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.login = login
         self.contributions = contributions
@@ -179,12 +177,12 @@ class Commit(GithubObject):
 
     api_path = "commits"
 
-    def __init__(self, contributor: Optional[Contributor] = None, **kwargs) -> None:
+    def __init__(self, contributor: Optional[Contributor] = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.contributor = contributor
 
     @classmethod
-    def from_dict(cls, data: Dict, **kwargs) -> "Commit":
+    def from_dict(cls, data: Dict, **kwargs: Any) -> "Commit":
         return cls(
             node_id=data['node_id'],
             created_at=datetime.strptime(data['commit']['author']['date'], GITHUB_TIMESTAMP_FORMAT),
@@ -203,7 +201,7 @@ class Issue(GithubObject):
 
     api_path: str = "issues"
 
-    def __init__(self, state: str, closed_at: Optional[datetime] = None, **kwargs) -> None:
+    def __init__(self, state: str, closed_at: Optional[datetime] = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.state = state
         self.closed_at = closed_at
@@ -220,7 +218,7 @@ class Issue(GithubObject):
         )
 
     @classmethod
-    def from_dict(cls, data: Dict, **kwargs) -> "Issue":
+    def from_dict(cls, data: Dict, **kwargs: Any) -> "Issue":
         return cls(**cls.get_data(data))
 
     @property
@@ -251,12 +249,12 @@ class PullRequest(Issue):
 
     base: str
 
-    def __init__(self, base: str, **kwargs) -> None:
+    def __init__(self, base: str, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.base = base
 
     @classmethod
-    def from_dict(cls, data: Dict, **kwargs) -> "PullRequest":
+    def from_dict(cls, data: Dict, **kwargs: Any) -> "PullRequest":
         return cls(**cls.get_data(data=data), base=kwargs["base"])
 
     @property
@@ -342,7 +340,7 @@ class GithubRepository:
 
         return items, incomplete_set_flag
 
-    def search_objects(self, object_class: Type[GithubObject], start_date: date, end_date: date, search_query: str) -> Set[Any]:
+    def search_objects(self, object_class: Type[Issue], search_query: str,  start_date: Optional[date] = None, end_date: Optional[date] = None) -> Set[Any]:
         """
         Проводит поиск объектов используя search API GitHub'а.
         В поисковом запросе использует даты создания объектов для получения релевантных результатов и
@@ -359,12 +357,21 @@ class GithubRepository:
 
         incomplete_set_flag = True
         while incomplete_set_flag:
+
+            if start_date or end_date:
+                date_filter = f"+created:" \
+                    f"{start_date.strftime('%Y-%m-%d') if start_date else '*'}" \
+                    f".." \
+                    f"{end_date.strftime('%Y-%m-%d') if end_date else '*'}"
+            else:
+                date_filter = ""
+
             items, incomplete_set_flag = self.paginated_search_request(
                 path=object_class.api_path,
                 params=dict(
                     sort="created",
                     order="asc",
-                    q=f"{search_query}+created:{start_date.strftime('%Y-%m-%d')}..{end_date.strftime('%Y-%m-%d')}"
+                    q=f"{search_query}{date_filter}"
                 )
             )
 
@@ -381,7 +388,7 @@ class GithubRepository:
 
         return objects
 
-    def get_commits(self, start_date: date, end_date: date) -> List[Commit]:
+    def get_commits(self, start_date: Optional[date] = None, end_date: Optional[date] = None) -> List[Commit]:
         """
         Возвращает все коммиты на ветке репозитория в указанном временном диапазоне.
 
@@ -412,7 +419,7 @@ class GithubRepository:
             if len(data) == per_page:
                 page += 1
             else:
-                page = None
+                page = 0
 
         return commits
 
@@ -425,7 +432,7 @@ class GithubRepository:
         """
 
         if self.commits:
-            contributions = defaultdict(lambda: 0)
+            contributions: defaultdict = defaultdict(lambda: 0)
             for commit in self.commits:
                 contributions[commit.contributor] += 1
 
@@ -437,7 +444,7 @@ class GithubRepository:
         else:
             return []
 
-    def get_pull_requests(self, start_date: date, end_date: date) -> [PullRequest]:
+    def get_pull_requests(self, start_date: Optional[date] = None, end_date: Optional[date] = None) -> List[PullRequest]:
         """Получает все пулл-реквесты, отфильтрованные по базовой ветке и диапазону дат с помощью search API."""
 
         pull_requests = self.search_objects(
@@ -448,7 +455,7 @@ class GithubRepository:
         )
         return list(pull_requests)
 
-    def get_issues(self, start_date: date, end_date: date) -> List[Issue]:
+    def get_issues(self, start_date: Optional[date] = None, end_date: Optional[date] = None) -> List[Issue]:
         """Получает все задачи репозитория в диапазоне start_date-end_date, включительно."""
 
         issues = self.search_objects(
@@ -459,7 +466,7 @@ class GithubRepository:
         )
         return list(issues)
 
-    def pull_data(self, start_date: date, end_date: date) -> None:
+    def pull_data(self, start_date: Optional[date] = None, end_date: Optional[date] = None) -> None:
         """Загрузка всех требуемых данных о репозитории для отчета."""
 
         self.pull_requests = self.get_pull_requests(start_date=start_date, end_date=end_date)
@@ -467,7 +474,7 @@ class GithubRepository:
         self.commits = self.get_commits(start_date=start_date, end_date=end_date)
 
     @staticmethod
-    def get_stats(data: Union[List[Issue], List[PullRequest]]) -> Dict:
+    def get_stats(data: Union[Optional[List[Issue]], Optional[List[PullRequest]]]) -> Dict:
         """Создает словарь со статистикой по задачам или пулл-реквестам"""
 
         stats = dict(total=0, open=0, old=0, closed=0)
@@ -478,7 +485,7 @@ class GithubRepository:
             stats["closed"] = len([x for x in data if x.state == 'closed'])
         return stats
 
-    def get_report(self, start_date: date, end_date: date) -> str:
+    def get_report(self, start_date: Optional[date] = None, end_date: Optional[date] = None) -> str:
         report = f'Анализ репозитория "{self}"(ветка {repository.branch}) за период с {start_date} по {end_date}.\n'
 
         contributors = self.get_top_contributors()
