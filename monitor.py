@@ -51,7 +51,13 @@ def parse_args() -> argparse.Namespace:
         default="master",
     )
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    if args.start_date and args.end_date:
+        assert args.start_date <= args.end_date, f"Указанная дата начала анализа {args.start_date} больше, " \
+            f"чем дата его завершения {args.end_date}."
+
+    return args
 
 
 def github_api_request(path: str, method: str = "GET", params: Optional[Dict] = None) -> Union[Dict, List]:
@@ -524,9 +530,6 @@ if __name__ == "__main__":
     )
 
     args = parse_args()
-    if args.start_date and args.end_date:
-        assert args.start_date <= args.end_date, f"Указанная дата начала анализа {args.start_date} больше, " \
-            f"чем дата его завершения {args.end_date}."
 
     repository = GithubRepository(url=args.url, branch=args.branch)
 
